@@ -13,24 +13,28 @@ from __future__ import annotations
 from datetime import date
 from typing import Annotated
 
-from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver import AcceptedElicitation, Context, Elicit, ElicitationResult, MCPServer, Resolve
 from mcp_types import ToolAnnotations
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from northwind_mcp import paging
-from northwind_mcp.db import read_connection
+from northwind_mcp.db import read_connection, write_connection
+from northwind_mcp.errors import NorthwindError
 from northwind_mcp.models import (
+    MAX_ORDER_LINES,
     CustomerDetail,
     CustomerSearchResult,
     InactiveCustomersResult,
     OrderDetail,
+    OrderLineInput,
     OrderListResult,
+    PlacedOrder,
     ProductDetail,
     ProductSearchResult,
     ReferenceResult,
     SalesSummaryResult,
 )
-from northwind_mcp.tools import customers, orders, products, reports
+from northwind_mcp.tools import customers, orders, products, reports, write
 
 INSTRUCTIONS = """\
 Northwind trading company data: customers, orders, order lines, products, categories,
@@ -45,6 +49,8 @@ suppliers, employees and shippers.
 """
 
 READ_ONLY = ToolAnnotations(read_only_hint=True, open_world_hint=False)
+# Adds data (not destructive), and calling it twice places two orders (not idempotent).
+WRITES = ToolAnnotations(read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=False)
 
 mcp = MCPServer(name="northwind", instructions=INSTRUCTIONS)
 
@@ -240,6 +246,65 @@ def list_reference(
     (with country), employees (with job title and who they report to), or shippers."""
     with read_connection() as con:
         return reports.list_reference(con, kind)
+
+
+# --- The one write -------------------------------------------------------------
+
+
+class ApproveOrder(BaseModel):
+    """What the human answers in the approval dialog. Only primitive fields are allowed here."""
+
+    approve: bool = Field(description="Tick to place this order. Leave unticked to cancel.")
+
+
+def ask_human_to_approve(
+    customer_id: str, employee_id: int, shipper_id: int, lines: list[OrderLineInput]
+) -> Elicit[ApproveOrder]:
+    """Runs before place_order's body: check and price the order (read-only), then ask the human.
+
+    An invalid order is refused here, before any dialog is shown. The approval is not a tool
+    argument, so the model cannot supply it: it comes from the human, through the client.
+    """
+    with read_connection() as con:
+        draft = write.draft_order(con, customer_id, employee_id, shipper_id, lines)
+    return Elicit(write.describe_draft(draft), ApproveOrder)
+
+
+def _client_name(ctx: Context) -> str | None:
+    try:
+        return ctx.session.client_params.client_info.name
+    except AttributeError:
+        return None
+
+
+@mcp.tool(annotations=WRITES)
+def place_order(
+    customer_id: CustomerId,
+    employee_id: Annotated[int, Field(ge=1, description="Employee who sells the order (list_reference).")],
+    shipper_id: Annotated[int, Field(ge=1, description="Shipper who will deliver it (list_reference).")],
+    lines: Annotated[
+        list[OrderLineInput],
+        Field(min_length=1, max_length=MAX_ORDER_LINES, description="One line per product, each product once."),
+    ],
+    approval: Annotated[ElicitationResult[ApproveOrder], Resolve(ask_human_to_approve)],
+    ctx: Context,
+) -> PlacedOrder:
+    """Place a new order. THIS CHANGES DATA: it adds the order and reduces stock.
+
+    The server first checks the whole order (customer, employee, shipper, every product exists,
+    is still sold and has enough stock) and refuses it if anything is wrong. Then it shows the
+    priced order to the human and asks them to approve it. Nothing is written unless they approve.
+    New orders use today's list prices, no discount, today's date, and are due in 28 days.
+    """
+    if not (isinstance(approval, AcceptedElicitation) and approval.data.approve):
+        raise NorthwindError(
+            "declined",
+            "The order was NOT placed because the approval was declined. Nothing was written.",
+            "If no approval dialog appeared, this MCP client cannot ask the user (no elicitation support). "
+            "Place orders from MCP Inspector or the Northwind web host instead.",
+        )
+    with write_connection() as con:
+        return write.place_order(con, customer_id, employee_id, shipper_id, lines, client=_client_name(ctx))
 
 
 def main() -> None:

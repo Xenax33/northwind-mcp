@@ -49,6 +49,18 @@ MSSQL_SOURCE = {
 LAST_REAL_ORDER_ID = 11077  # Microsoft's data ends at 11077; higher IDs are random padding.
 JUNK_CUSTOMER_IDS = ("Val2 ", "VALON")  # Test rows (CompanyName 'IT') not in the original.
 
+# Every change made through the MCP server is recorded here, so writes stay visible afterwards.
+AUDIT_LOG_SQL = """
+CREATE TABLE IF NOT EXISTS audit_log (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    at        TEXT NOT NULL,      -- UTC timestamp, ISO 8601
+    action    TEXT NOT NULL,      -- e.g. 'place_order'
+    order_id  INTEGER,
+    client    TEXT,               -- the MCP client's name, when it sent one
+    details   TEXT NOT NULL       -- JSON: what was written
+);
+"""
+
 EXPECTED_COUNTS = {
     "Orders": 830,
     "Order Details": 2155,
@@ -110,6 +122,7 @@ def clean(db_path: Path, freight: dict[int, float]) -> None:
                 "UPDATE sqlite_sequence SET seq = ? WHERE name = 'Orders'", (LAST_REAL_ORDER_ID,)
             )
         con.executescript(VIEWS_SQL.read_text(encoding="utf-8"))
+        con.executescript(AUDIT_LOG_SQL)
         con.execute("VACUUM")
     finally:
         con.close()
@@ -131,6 +144,8 @@ def verify(db_path: Path, freight: dict[int, float]) -> None:
         views = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type = 'view'")}
         if missing := set(OUR_VIEWS) - views:
             raise SystemExit(f"views not created: {sorted(missing)}")
+        if con.execute("SELECT 1 FROM sqlite_master WHERE name = 'audit_log'").fetchone() is None:
+            raise SystemExit("audit_log table not created")
         total = con.execute("SELECT ROUND(SUM(revenue), 2) FROM v_order_lines").fetchone()[0]
         if total != EXPECTED_TOTAL_REVENUE:
             raise SystemExit(f"total revenue {total} != expected {EXPECTED_TOTAL_REVENUE}")

@@ -182,3 +182,44 @@ class ReferenceItem(BaseModel):
 class ReferenceResult(BaseModel):
     kind: str
     items: list[ReferenceItem]
+
+
+# --- Placing an order (the one write) ----------------------------------------
+
+MAX_ORDER_LINES = 25
+MAX_LINE_QUANTITY = 1000
+
+
+class OrderLineInput(BaseModel):
+    product_id: int = Field(ge=1, description="Product to order. Use search_products to find IDs.")
+    quantity: int = Field(ge=1, le=MAX_LINE_QUANTITY, description=f"Units to order (1-{MAX_LINE_QUANTITY}).")
+
+
+class PricedLine(BaseModel):
+    product_id: int
+    product_name: str
+    unit_price: float = Field(description="Today's list price; new orders get no discount.")
+    quantity: int
+    line_total: float
+    stock_before: int
+    stock_after: int
+
+
+class OrderDraft(BaseModel):
+    """A fully checked and priced order, before anything is written."""
+
+    customer_id: str
+    customer_name: str
+    employee_id: int
+    employee_name: str
+    shipper_id: int
+    shipper_name: str
+    lines: list[PricedLine]
+    total: float = Field(description="Sum of the lines. Freight is not included (set when the order ships).")
+
+
+class PlacedOrder(OrderDraft):
+    order_id: int
+    order_date: str
+    required_date: str
+    status: str = "unshipped"
