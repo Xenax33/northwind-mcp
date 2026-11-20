@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import date
 
 from northwind_mcp import paging
 from northwind_mcp.errors import NorthwindError
-from northwind_mcp.models import CustomerDetail, CustomerSearchResult, CustomerSummary, RecentOrder
-
-
-def _like(text: str) -> str:
-    """A LIKE pattern matching `text` anywhere, with LIKE's own wildcards escaped."""
-    escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    return f"%{escaped}%"
+from northwind_mcp.models import (
+    CustomerDetail,
+    CustomerSearchResult,
+    CustomerSummary,
+    InactiveCustomer,
+    InactiveCustomersResult,
+    RecentOrder,
+)
+from northwind_mcp.tools._common import like
 
 
 def search_customers(
@@ -31,7 +34,7 @@ def search_customers(
             "(customer_id LIKE :q ESCAPE '\\' OR customer_name LIKE :q ESCAPE '\\'"
             " OR contact_name LIKE :q ESCAPE '\\' OR city LIKE :q ESCAPE '\\')"
         )
-        params.append(("q", _like(query.strip())))
+        params.append(("q", like(query)))
     if country:
         where.append("country = :country COLLATE NOCASE")
         params.append(("country", country.strip()))
@@ -99,4 +102,47 @@ def get_customer(con: sqlite3.Connection, customer_id: str) -> CustomerDetail:
             )
             for o in recent
         ],
+    )
+
+
+def find_inactive_customers(
+    con: sqlite3.Connection,
+    since: date,
+    limit: int = paging.DEFAULT_LIMIT,
+    cursor: str | None = None,
+) -> InactiveCustomersResult:
+    """Customers with no order on or after `since`, INCLUDING customers who never ordered.
+
+    The view v_customers is built with a LEFT JOIN, so customers without orders are in it
+    with last_order_date NULL. A query that started from Orders would miss them.
+    """
+    filters = {"since": since.isoformat()}
+    offset = paging.decode_cursor(cursor, filters)
+    where = "WHERE last_order_date IS NULL OR last_order_date < :since"
+    args = {"since": since.isoformat()}
+
+    total, never = con.execute(
+        f"SELECT COUNT(*), COALESCE(SUM(order_count = 0), 0) FROM v_customers {where}", args
+    ).fetchone()
+    rows = con.execute(
+        f"SELECT * FROM v_customers {where}"
+        " ORDER BY last_order_date IS NOT NULL, last_order_date, customer_name"
+        " LIMIT :limit OFFSET :offset",
+        {**args, "limit": limit, "offset": offset},
+    ).fetchall()
+    return InactiveCustomersResult(
+        since=since.isoformat(),
+        never_ordered_count=never,
+        customers=[
+            InactiveCustomer(
+                customer_id=r["customer_id"],
+                customer_name=r["customer_name"],
+                country=r["country"],
+                order_count=r["order_count"],
+                last_order_date=r["last_order_date"],
+            )
+            for r in rows
+        ],
+        total_count=total,
+        next_cursor=paging.next_cursor(offset, len(rows), total, filters),
     )

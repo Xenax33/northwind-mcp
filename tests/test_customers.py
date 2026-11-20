@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 
 from northwind_mcp.errors import NorthwindError
@@ -58,6 +60,15 @@ def test_get_customer_who_never_ordered(db):
     assert c.order_count == 0
     assert c.revenue == 0
     assert c.recent_orders == []
+
+
+def test_inactive_customers_include_those_who_never_ordered(db):
+    result = customers.find_inactive_customers(db, since=date(2017, 11, 6))
+    assert result.total_count == 7
+    assert result.never_ordered_count == 2
+    ids = [c.customer_id for c in result.customers]
+    assert ids[:2] == ["FISSA", "PARIS"]  # never ordered come first
+    assert set(ids[2:]) == {"CENTC", "LAZYK", "HUNGC", "MEREP", "FAMIA"}
 
 
 def test_get_unknown_customer_is_refused_with_hint(db):

@@ -27,8 +27,18 @@ def isolated_db(db_path, monkeypatch):
 async def test_tools_are_listed_with_read_only_annotations():
     async with Client(mcp) as client:
         tools = {t.name: t for t in (await client.list_tools()).tools}
-    assert {"search_customers", "get_customer"} <= tools.keys()
-    for name in ("search_customers", "get_customer"):
+    assert tools.keys() == {
+        "search_customers",
+        "get_customer",
+        "find_inactive_customers",
+        "search_products",
+        "get_product",
+        "list_orders",
+        "get_order",
+        "sales_summary",
+        "list_reference",
+    }
+    for name in tools:
         assert tools[name].annotations.read_only_hint is True
         assert tools[name].output_schema is not None
 
