@@ -30,7 +30,7 @@ The data runs from 2016-07-04 to 2018-05-06, so "recent" means relative to 2018-
 
 9. Who are our top 5 customers by revenue?
 10. What were sales by category in 2017?
-11. Which shipper carried the most freight?
+11. Which shipper carried the most freight, and how much?
 
 ## Finding what is missing
 

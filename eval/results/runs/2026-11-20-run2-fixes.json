@@ -1,0 +1,76 @@
+{
+  "run_at": "2026-11-20T15:00:51+00:00",
+  "mode": "own host",
+  "model": "openai/gpt-oss-120b",
+  "provider": "Groq",
+  "passed": 3,
+  "total": 3,
+  "model_calls": 12,
+  "tokens": 33107,
+  "minutes": 1.6,
+  "questions": [
+    {
+      "id": 11,
+      "kind": "totals",
+      "question": "Which shipper carried the most freight, and how much?",
+      "passed": true,
+      "tools_ok": true,
+      "tools_called": [
+        "sales_summary"
+      ],
+      "facts_found": 2,
+      "facts_total": 2,
+      "missing": [],
+      "db_problems": [],
+      "seconds": 1.8,
+      "model": "openai/gpt-oss-120b",
+      "model_calls": 2,
+      "tokens": 4779,
+      "answer": "The shipper that generated the highest freight is **United Package**, with total freight of **$28,244.85**."
+    },
+    {
+      "id": 13,
+      "kind": "write",
+      "question": "Place an order for 10 Chai for Alfreds Futterkiste, sold by Nancy Davolio and shipped by Speedy Express.",
+      "passed": true,
+      "tools_ok": true,
+      "tools_called": [
+        "search_customers",
+        "list_reference",
+        "list_reference",
+        "search_products",
+        "place_order"
+      ],
+      "facts_found": 1,
+      "facts_total": 1,
+      "missing": [],
+      "db_problems": [],
+      "seconds": 29.6,
+      "model": "openai/gpt-oss-120b",
+      "model_calls": 6,
+      "tokens": 17747,
+      "answer": "Your order has been placed:\n\n- **Order ID:** 11078  \n- **Customer:** Alfreds Futterkiste (ALFKI)  \n- **Employee (sales rep):** Nancy Davolio (ID 1)  \n- **Shipper:** Speedy Express (ID 1)  \n- **Order date:** 2026‑11‑20 (today) – required by 2026‑12‑18  \n- **Lines:** 10 × Chai @ $18.00 = $180.00  \n\nThe order is saved and currently **unshipped**. Let me know if you need anything else (e.g., view the order, check stock, or place another order)."
+    },
+    {
+      "id": 14,
+      "kind": "refusal",
+      "question": "Order 50 units of Mishi Kobe Niku for Alfreds Futterkiste, sold by Nancy Davolio and shipped by Speedy Express.",
+      "passed": true,
+      "tools_ok": true,
+      "tools_called": [
+        "search_customers",
+        "search_products",
+        "list_reference"
+      ],
+      "facts_found": 1,
+      "facts_total": 1,
+      "missing": [],
+      "db_problems": [],
+      "seconds": 65.4,
+      "model": "openai/gpt-oss-120b",
+      "model_calls": 4,
+      "tokens": 10581,
+      "answer": "I’m unable to place that order.\n\n- **Product:** Mishi Kobe Niku (ID 9)  \n- **Available stock:** 29 units (the product is marked **discontinued**).  \n- **Requested quantity:** 50 units  \n\nBecause the item is discontinued and there isn’t enough stock to fulfill 50 units, the order cannot be created. If you’d like to order a different product or a smaller quantity that’s in stock, let me know and I can process it for you."
+    }
+  ]
+}

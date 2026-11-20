@@ -1,0 +1,323 @@
+{
+  "about": "The 14 questions from docs/questions.md with the answers we expect. Expected values were computed with raw SQL on the original Northwind tables (not the server's views), so they check the server independently. Strings must appear in the answer (case, accents, quotes and dashes are normalised); numbers must appear as numbers (thousands separators and $ ignored, within 0.01).",
+  "questions": [
+    {
+      "id": 1,
+      "kind": "lookup",
+      "question": "What do we know about the customer Ernst Handel: contact, country, how many orders, total spent?",
+      "expect_tools_any": [
+        "get_customer",
+        "search_customers"
+      ],
+      "must_contain": [
+        "Roland Mendel",
+        "Austria",
+        30,
+        104874.98
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "lookup",
+      "question": "Which products are out of stock or need reordering?",
+      "expect_tools_any": [
+        "search_products"
+      ],
+      "must_contain": [
+        "Alice Mutton",
+        "Chef Anton's Gumbo Mix",
+        "Gorgonzola Telino",
+        "Perth Pasties",
+        "Thüringer Rostbratwurst",
+        "Nord-Ost Matjeshering",
+        "Outback Lager"
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "lookup",
+      "question": "Which suppliers supply Seafood, and from which countries?",
+      "expect_tools_any": [
+        "search_products"
+      ],
+      "must_contain": [
+        "Escargots Nouveaux",
+        "Lyngbysild",
+        "Mayumi's",
+        "New England Seafood Cannery",
+        "Nord-Ost-Fisch Handelsgesellschaft mbH",
+        "Pavlova, Ltd.",
+        "Svensk Sjöföda AB",
+        "Tokyo Traders",
+        "Australia",
+        "Denmark",
+        "France",
+        "Germany",
+        "Japan",
+        "Sweden",
+        "USA"
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "linked",
+      "question": "What was in order 10248, who sold it and who shipped it?",
+      "expect_tools_any": [
+        "get_order"
+      ],
+      "must_contain": [
+        "Queso Cabrales",
+        "Singaporean Hokkien Fried Mee",
+        "Mozzarella di Giovanni",
+        "Steven Buchanan",
+        "Federal Shipping"
+      ]
+    },
+    {
+      "id": 5,
+      "kind": "linked",
+      "question": "Which customers have bought Chai?",
+      "expect_tools_any": [
+        "sales_summary",
+        "list_orders"
+      ],
+      "must_contain": [
+        "Berglunds snabbköp",
+        "Blondesddsl père et fils",
+        "Bottom-Dollar Markets",
+        "Chop-suey Chinese",
+        "Die Wandernde Kuh",
+        "Du monde entier",
+        "Eastern Connection",
+        "Godos Cocina Típica",
+        "Great Lakes Food Market",
+        "HILARION-Abastos",
+        "Hungry Owl All-Night Grocers",
+        "LINO-Delicateses",
+        "La maison d'Asie",
+        "Lehmanns Marktstand",
+        "Lonesome Pine Restaurant",
+        "Mère Paillarde",
+        "North/South",
+        "Pericles Comidas clásicas",
+        "Princesa Isabel Vinhos",
+        "QUICK-Stop",
+        "Queen Cozinha",
+        "Rattlesnake Canyon Grocery",
+        "Save-a-lot Markets",
+        "Seven Seas Imports",
+        "Suprêmes délices",
+        "The Cracker Box",
+        "Tortuga Restaurante",
+        "Wartian Herkku",
+        "Wellington Importadora",
+        "Wilman Kala",
+        "Wolski  Zajazd"
+      ]
+    },
+    {
+      "id": 6,
+      "kind": "linked",
+      "question": "Who does Michael Suyama report to, and what were his 2017 sales?",
+      "expect_tools_any": [
+        "sales_summary"
+      ],
+      "must_contain": [
+        "Steven Buchanan",
+        43126.37
+      ]
+    },
+    {
+      "id": 7,
+      "kind": "paging",
+      "question": "List all orders that haven't shipped yet.",
+      "expect_tools_any": [
+        "list_orders"
+      ],
+      "must_contain": [
+        11008,
+        11019,
+        11039,
+        11040,
+        11045,
+        11051,
+        11054,
+        11058,
+        11059,
+        11061,
+        11062,
+        11065,
+        11068,
+        11070,
+        11071,
+        11072,
+        11073,
+        11074,
+        11075,
+        11076,
+        11077
+      ]
+    },
+    {
+      "id": 8,
+      "kind": "paging",
+      "question": "Which orders shipped late?",
+      "expect_tools_any": [
+        "list_orders"
+      ],
+      "must_contain": [
+        10264,
+        10271,
+        10280,
+        10302,
+        10309,
+        10320,
+        10380,
+        10423,
+        10427,
+        10433,
+        10451,
+        10483,
+        10515,
+        10523,
+        10545,
+        10578,
+        10593,
+        10596,
+        10660,
+        10663,
+        10687,
+        10705,
+        10709,
+        10726,
+        10727,
+        10749,
+        10777,
+        10779,
+        10807,
+        10816,
+        10827,
+        10828,
+        10847,
+        10924,
+        10927,
+        10960,
+        10970
+      ]
+    },
+    {
+      "id": 9,
+      "kind": "totals",
+      "question": "Who are our top 5 customers by revenue?",
+      "expect_tools_any": [
+        "sales_summary"
+      ],
+      "must_contain": [
+        "QUICK-Stop",
+        110277.3,
+        "Ernst Handel",
+        104874.98,
+        "Save-a-lot Markets",
+        104361.95,
+        "Rattlesnake Canyon Grocery",
+        51097.8,
+        "Hungry Owl All-Night Grocers",
+        49979.9
+      ]
+    },
+    {
+      "id": 10,
+      "kind": "totals",
+      "question": "What were sales by category in 2017?",
+      "expect_tools_any": [
+        "sales_summary"
+      ],
+      "must_contain": [
+        "Dairy Products",
+        115387.64,
+        "Beverages",
+        103924.31,
+        "Confections",
+        82657.75,
+        "Meat/Poultry",
+        80975.11,
+        "Seafood",
+        66959.22,
+        "Grains/Cereals",
+        56871.82,
+        "Condiments",
+        55368.59,
+        "Produce",
+        54940.77
+      ]
+    },
+    {
+      "id": 11,
+      "kind": "totals",
+      "question": "Which shipper carried the most freight, and how much?",
+      "expect_tools_any": [
+        "sales_summary"
+      ],
+      "must_contain": [
+        "United Package",
+        28244.85
+      ]
+    },
+    {
+      "id": 12,
+      "kind": "missing",
+      "question": "Which customers haven't ordered anything in the last 6 months of the data?",
+      "expect_tools_any": [
+        "find_inactive_customers"
+      ],
+      "must_contain": [
+        "Centro comercial Moctezuma",
+        "FISSA Fabrica Inter. Salchichas S.A.",
+        "Familia Arquibaldo",
+        "Hungry Coyote Import Store",
+        "Lazy K Kountry Store",
+        "Mère Paillarde",
+        "Paris spécialités"
+      ]
+    },
+    {
+      "id": 13,
+      "kind": "write",
+      "question": "Place an order for 10 Chai for Alfreds Futterkiste, sold by Nancy Davolio and shipped by Speedy Express.",
+      "expect_tools_any": [
+        "place_order"
+      ],
+      "must_contain": [
+        11078
+      ],
+      "db_check": {
+        "order_written": {
+          "order_id": 11078,
+          "customer_id": "ALFKI",
+          "product_id": 1,
+          "quantity": 10
+        },
+        "stock": {
+          "product_id": 1,
+          "units_in_stock": 29
+        }
+      }
+    },
+    {
+      "id": 14,
+      "kind": "refusal",
+      "question": "Order 50 units of Mishi Kobe Niku for Alfreds Futterkiste, sold by Nancy Davolio and shipped by Speedy Express.",
+      "expect_tools_any": [
+        "place_order",
+        "search_products",
+        "get_product"
+      ],
+      "must_contain": [
+        "discontinued"
+      ],
+      "db_check": {
+        "nothing_written": true
+      }
+    }
+  ]
+}
