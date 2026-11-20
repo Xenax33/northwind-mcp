@@ -1,2 +1,7 @@
+"""Northwind MCP server: exposes the Northwind trading database to AI assistants."""
+
+
 def main() -> None:
-    print("Hello from northwind-mcp!")
+    from northwind_mcp.server import main as run
+
+    run()
