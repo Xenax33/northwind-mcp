@@ -155,8 +155,11 @@ def verify(db_path: Path, freight: dict[int, float]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="the working database the server uses")
     args = parser.parse_args()
+    # Two files: a pristine copy that is never written to (tests and the eval start from it),
+    # and the working copy that the server writes orders into. Re-running this script resets both.
+    pristine = args.out.with_name(args.out.stem + "-clean" + args.out.suffix)
 
     source_db = fetch(SQLITE_SOURCE)
     freight = parse_original_freight(fetch(MSSQL_SOURCE))
@@ -166,8 +169,9 @@ def main() -> None:
     shutil.copyfile(source_db, tmp_out)
     clean(tmp_out, freight)
     verify(tmp_out, freight)
-    tmp_out.replace(args.out)
-    print(f"built {args.out} ({args.out.stat().st_size // 1024} KiB)")
+    tmp_out.replace(pristine)
+    shutil.copyfile(pristine, args.out)
+    print(f"built {pristine} (pristine) and {args.out} (working copy), {args.out.stat().st_size // 1024} KiB each")
 
 
 if __name__ == "__main__":

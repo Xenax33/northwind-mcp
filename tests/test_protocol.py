@@ -40,6 +40,7 @@ async def test_tools_are_listed_with_read_only_annotations():
         "get_order",
         "sales_summary",
         "list_reference",
+        "list_recent_changes",
         "place_order",
     }
     for name in tools.keys() - {"place_order"}:

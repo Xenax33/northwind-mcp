@@ -101,3 +101,21 @@ def test_read_connection_cannot_write(db_path):
 
     with read_connection(db_path) as con, pytest.raises(sqlite3.OperationalError, match="readonly"):
         con.execute("DELETE FROM Orders")
+
+
+def test_recent_changes_show_placed_orders_newest_first(db_path):
+    from northwind_mcp.tools import audit
+
+    with read_connection(db_path) as con:
+        assert audit.list_recent_changes(con).total_count == 0
+    with write_connection(db_path) as con:
+        write.place_order(con, "ALFKI", 1, 1, lines((1, 10)), today=TODAY, client="first")
+    with write_connection(db_path) as con:
+        write.place_order(con, "ERNSH", 2, 3, lines((2, 1), (3, 2)), today=TODAY, client="second")
+    with read_connection(db_path) as con:
+        changes = audit.list_recent_changes(con).changes
+    assert [(c.order_id, c.client, c.customer_name, c.line_count) for c in changes] == [
+        (11079, "second", "Ernst Handel", 2),
+        (11078, "first", "Alfreds Futterkiste", 1),
+    ]
+    assert changes[1].total == 180.0

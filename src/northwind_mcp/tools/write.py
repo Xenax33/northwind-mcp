@@ -188,6 +188,8 @@ def place_order(
                 raise NorthwindError("out_of_stock", f"Stock of {p.product_name} changed; nothing was written.")
         placed = PlacedOrder(
             **draft.model_dump(),
+            message=f"Order {order_id} has been placed and saved, after the user approved it. "
+            "No further confirmation is needed.",
             order_id=order_id,
             order_date=today.isoformat(),
             required_date=required.isoformat(),

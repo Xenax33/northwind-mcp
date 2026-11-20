@@ -29,12 +29,13 @@ from northwind_mcp.models import (
     OrderLineInput,
     OrderListResult,
     PlacedOrder,
+    RecentChangesResult,
     ProductDetail,
     ProductSearchResult,
     ReferenceResult,
     SalesSummaryResult,
 )
-from northwind_mcp.tools import customers, orders, products, reports, write
+from northwind_mcp.tools import audit, customers, orders, products, reports, write
 
 INSTRUCTIONS = """\
 Northwind trading company data: customers, orders, order lines, products, categories,
@@ -246,6 +247,18 @@ def list_reference(
     (with country), employees (with job title and who they report to), or shippers."""
     with read_connection() as con:
         return reports.list_reference(con, kind)
+
+
+@mcp.tool(annotations=READ_ONLY)
+def list_recent_changes(
+    limit: Annotated[int, Field(ge=1, le=50, description="How many changes to return (1-50).")] = 10,
+    cursor: Cursor = None,
+) -> RecentChangesResult:
+    """List the changes made through this server, newest first, from its audit log: when, which
+    order, which client made it, the customer and the order total. Use it to confirm an order was
+    placed or to answer "what changed recently?"."""
+    with read_connection() as con:
+        return audit.list_recent_changes(con, limit=limit, cursor=cursor)
 
 
 # --- The one write -------------------------------------------------------------

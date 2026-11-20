@@ -219,7 +219,28 @@ class OrderDraft(BaseModel):
 
 
 class PlacedOrder(OrderDraft):
+    placed: bool = Field(default=True, description="Always true: the order has been written.")
+    message: str = Field(description="Plain confirmation to pass on to the user.")
     order_id: int
     order_date: str
     required_date: str
     status: str = "unshipped"
+
+
+# --- Audit log ------------------------------------------------------------------
+
+
+class ChangeEntry(BaseModel):
+    change_id: int
+    at: str = Field(description="When the change was written (UTC, ISO 8601).")
+    action: str
+    order_id: int | None
+    client: str | None = Field(description="Name of the MCP client that made the change, when it sent one.")
+    customer_id: str | None
+    customer_name: str | None
+    line_count: int
+    total: float | None
+
+
+class RecentChangesResult(Page):
+    changes: list[ChangeEntry]

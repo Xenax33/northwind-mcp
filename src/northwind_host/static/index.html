@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Northwind MCP host</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Northwind MCP host</h1>
+    <p id="status" class="status" role="status">Connecting…</p>
+  </header>
+
+  <main class="layout">
+    <section class="panel tools" aria-labelledby="tools-title">
+      <h2 id="tools-title">Tools <span id="tool-count" class="count"></span></h2>
+      <p class="hint">Served by the MCP server over stdio. Select a tool to see its description and arguments.</p>
+      <ul id="tool-list" class="tool-list"></ul>
+    </section>
+
+    <section class="panel ask" aria-labelledby="ask-title">
+      <h2 id="ask-title">Ask a question</h2>
+      <form id="ask-form">
+        <label for="question">Question</label>
+        <textarea id="question" rows="3" maxlength="1000" required
+          placeholder="e.g. Who are our top 5 customers by revenue?"></textarea>
+        <div class="examples" aria-label="Example questions">
+          <button type="button" class="chip">Who are our top 5 customers by revenue?</button>
+          <button type="button" class="chip">What was in order 10248, who sold it and who shipped it?</button>
+          <button type="button" class="chip">Which customers haven't ordered anything in the last 6 months of the data?</button>
+          <button type="button" class="chip">Place an order for 10 Chai for Alfreds Futterkiste.</button>
+        </div>
+        <button id="ask-button" type="submit" class="primary">Ask</button>
+        <p id="ask-error" class="error" role="alert" hidden></p>
+      </form>
+
+      <h2>Answer</h2>
+      <div id="answer" class="answer empty">The answer appears here.</div>
+      <p id="answer-meta" class="meta"></p>
+
+      <h2>Recent changes <button id="refresh-changes" type="button" class="link">Refresh</button></h2>
+      <p class="hint">Orders placed through the server, from its audit log (read with the MCP tool list_recent_changes).</p>
+      <div id="changes"></div>
+    </section>
+
+    <section class="panel log" aria-labelledby="log-title">
+      <h2 id="log-title">Live protocol log</h2>
+      <div class="filters">
+        <label><input type="checkbox" id="show-mcp" checked> MCP messages</label>
+        <label><input type="checkbox" id="show-ai" checked> AI steps</label>
+        <button id="clear-log" type="button" class="link">Clear</button>
+      </div>
+      <ol id="log" class="log-list" aria-live="off"></ol>
+    </section>
+  </main>
+
+  <dialog id="approval" aria-labelledby="approval-title">
+    <h2 id="approval-title">Approve this change?</h2>
+    <p>The MCP server asks for your approval before it writes anything.</p>
+    <pre id="approval-text"></pre>
+    <div class="dialog-actions">
+      <button id="decline" type="button">Decline</button>
+      <button id="approve" type="button" class="primary">Approve order</button>
+    </div>
+  </dialog>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
