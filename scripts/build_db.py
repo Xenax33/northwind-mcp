@@ -6,7 +6,8 @@ Sources (both pinned to a commit and checked by SHA-256):
 
 The SQLite file is padded with ~15.4k random orders. It also rewrote Freight on
 the 830 real orders and holds two test customers. This script keeps only the real
-data and restores the original Freight values from Microsoft's script.
+data and restores the original Freight values from Microsoft's script. Finally it
+applies our own SQL views (src/northwind_mcp/views.sql) and checks the result.
 
 Usage:  uv run python scripts/build_db.py [--out data/northwind.db]
 """
@@ -25,6 +26,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT / "data" / "raw"
 DEFAULT_OUT = ROOT / "data" / "northwind.db"
+VIEWS_SQL = ROOT / "src" / "northwind_mcp" / "views.sql"
+OUR_VIEWS = ("v_order_lines", "v_orders", "v_products", "v_customers")
+
+# Total revenue of the original Northwind data, as published in Microsoft's samples
+# (sum of UnitPrice * Quantity * (1 - Discount)). An independent check on the cleanup.
+EXPECTED_TOTAL_REVENUE = 1265793.04
 
 SQLITE_SOURCE = {
     "url": "https://raw.githubusercontent.com/jpwhite3/northwind-SQLite3/"
@@ -102,6 +109,7 @@ def clean(db_path: Path, freight: dict[int, float]) -> None:
             con.execute(
                 "UPDATE sqlite_sequence SET seq = ? WHERE name = 'Orders'", (LAST_REAL_ORDER_ID,)
             )
+        con.executescript(VIEWS_SQL.read_text(encoding="utf-8"))
         con.execute("VACUUM")
     finally:
         con.close()
@@ -120,6 +128,12 @@ def verify(db_path: Path, freight: dict[int, float]) -> None:
         wrong = [oid for oid, value in freight.items() if abs(stored[oid] - value) > 1e-9]
         if wrong:
             raise SystemExit(f"freight not restored for orders {wrong[:5]}")
+        views = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type = 'view'")}
+        if missing := set(OUR_VIEWS) - views:
+            raise SystemExit(f"views not created: {sorted(missing)}")
+        total = con.execute("SELECT ROUND(SUM(revenue), 2) FROM v_order_lines").fetchone()[0]
+        if total != EXPECTED_TOTAL_REVENUE:
+            raise SystemExit(f"total revenue {total} != expected {EXPECTED_TOTAL_REVENUE}")
     finally:
         con.close()
 
