@@ -30,6 +30,8 @@ HOST_GUIDANCE = """\
 You answer questions about the Northwind trading company using only the tools provided.
 - Base every fact and number on tool results. Never guess or invent data.
 - If a tool returns an error, read its "hint" and correct the call.
+- Lists in tool results come as {"columns": [...], "rows": [[...], ...]}: each row holds the values
+  in the same order as the columns.
 - Answer concisely. Use a short list or table when there are several items.
 - Placing an order changes data: only call place_order when the user clearly asks to order,
   and tell them whether it was placed. The user approves it in a dialog, not in the chat.
@@ -65,10 +67,28 @@ def to_openai_tools(tools: list[types.Tool]) -> list[dict[str, Any]]:
     ]
 
 
+def compact(value: Any) -> Any:
+    """Rewrite every list of same-shaped objects as {"columns": [...], "rows": [[...], ...]}.
+
+    Field names are then written once instead of on every row: a page of 37 orders shrinks
+    by more than half. This matters on Groq's free tier, where 8,000 tokens per minute is also
+    the largest single request. It only changes what our model reads; MCP clients still get
+    the server's full structured result.
+    """
+    if isinstance(value, dict):
+        return {key: compact(item) for key, item in value.items()}
+    if isinstance(value, list):
+        if len(value) > 1 and all(isinstance(item, dict) for item in value) and len({tuple(item) for item in value}) == 1:
+            columns = list(value[0])
+            return {"columns": columns, "rows": [[compact(item[c]) for c in columns] for item in value]}
+        return [compact(item) for item in value]
+    return value
+
+
 def tool_result_text(result: types.CallToolResult) -> str:
-    """What the model reads back: the structured result as JSON, else the text content."""
+    """What the model reads back: the structured result as compact JSON, else the text content."""
     if result.structured_content is not None and not result.is_error:
-        return json.dumps(result.structured_content, ensure_ascii=False)
+        return json.dumps(compact(result.structured_content), ensure_ascii=False, separators=(",", ":"))
     texts = [c.text for c in result.content if isinstance(c, types.TextContent)]
     return "\n".join(texts) or ("Tool error." if result.is_error else "")
 

@@ -124,3 +124,25 @@ def test_declined_order_writes_nothing(host, monkeypatch):
 
 def test_approval_endpoint_rejects_unknown_ids(host):
     assert host.post("/api/approvals/nope", json={"approve": True}).status_code == 404
+
+
+def test_model_api_errors_are_reported_without_provider_details(host):
+    import httpx
+    import openai
+
+    class FailingModel:
+        def __init__(self):
+            self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
+
+        async def create(self, **kwargs):
+            request = httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions")
+            response = httpx.Response(413, request=request)
+            raise openai.APIStatusError(
+                "Request too large in organization org_secret123", response=response, body=None
+            )
+
+    host.app.state.agent.llm = FailingModel()
+    response = host.post("/api/ask", json={"question": "anything"})
+    assert response.status_code == 502
+    assert "8,000 tokens per minute" in response.json()["detail"]
+    assert "org_secret123" not in response.text

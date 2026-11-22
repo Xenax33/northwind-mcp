@@ -1,0 +1,53 @@
+{
+  "run_at": "2026-11-22T12:27:34+00:00",
+  "mode": "own host",
+  "model": "openai/gpt-oss-120b",
+  "provider": "Groq",
+  "passed": 2,
+  "total": 2,
+  "model_calls": 6,
+  "tokens": 22942,
+  "minutes": 1.8,
+  "questions": [
+    {
+      "id": 7,
+      "kind": "paging",
+      "question": "List all orders that haven't shipped yet.",
+      "passed": true,
+      "tools_ok": true,
+      "tools_called": [
+        "list_orders"
+      ],
+      "facts_found": 21,
+      "facts_total": 21,
+      "missing": [],
+      "db_problems": [],
+      "seconds": 3.3,
+      "model": "openai/gpt-oss-120b",
+      "model_calls": 2,
+      "tokens": 6658,
+      "answer": "**Unshipped orders (as of the latest data)**  \n\n| Order ID | Order Date | Customer (ID) | Customer Name | Revenue | Freight |\n|----------|------------|---------------|---------------|---------|---------|\n| 11077 | 2018‑05‑06 | RATTC | Rattlesnake Canyon Grocery | 1 255.72 | 8.53 |\n| 11076 | 2018‑05‑06 | BONAP | Bon app' | 792.75 | 38.28 |\n| 11075 | 2018‑05‑06 | RICSU | Richter Supermarkt | 498.10 | 6.19 |\n| 11074 | 2018‑05‑06 | SIMOB | Simons bistro | 232.08 | 18.44 |\n| 11073 | 2018‑05‑05 | PERIC | Pericles Comidas clásicas | 300.00 | 24.95 |\n| 11072 | 2018‑05‑05 | ERNSH | Ernst Handel | 5 218.00 | 258.64 |\n| 11071 | 2018‑05‑05 | LILAS | LILA‑Supermercado | 484.50 | 0.93 |\n| 11070 | 2018‑05‑05 | LEHMS | Lehmanns Marktstand | 1 629.97 | 136.00 |\n| 11068 | 2018‑05‑04 | QUEEN | Queen Cozinha | 2 027.08 | 81.75 |\n| 11065 | 2018‑05‑01 | LILAS | LILA‑Supermercado | 189.42 | 12.91 |\n| 11062 | 2018‑04‑30 | REGGC | Reggiani Caseifici | 406.40 | 29.93 |\n| 11061 | 2018‑04‑30 | GREAL | Great Lakes Food Market | 510.00 | 14.01 |\n| 11059 | 2018‑04‑29 | RICAR | Ricardo Adocicados | 1 838.00 | 85.80 |\n| 11058 | 2018‑04‑29 | BLAUS | Blauer See Delikatessen | 858.00 | 31.14 |\n| 11054 | 2018‑04‑28 | CACTU | Cactus Comidas para llevar | 305.00 | 0.33 |\n| 11051 | 2018‑04‑27 | LAMAI | La maison d'Asie | 36.00 | 2.79 |\n| 11045 | 2018‑04‑23 | BOTTM | Bottom‑Dollar Markets | 1 309.50 | 70.58 |\n| 11040 | 2018‑04‑22 | GREAL | Great Lakes Food Market | 200.00 | 18.84 |\n| 11039 | 2018‑04‑21 | LINOD | LINO‑Delicateses | 3 090.00 | 65.00 |\n| 11019 | 2018‑04‑13 | RANCH | Rancho grande | 76.00 | 3.17 |\n| 11008 | 2018‑04‑08 | ERNSH | Ernst Handel | 4 680.90 | 79.46 |\n\n*All 21 orders currently have no shipped date (status “unshipped”).*"
+    },
+    {
+      "id": 8,
+      "kind": "paging",
+      "question": "Which orders shipped late?",
+      "passed": true,
+      "tools_ok": true,
+      "tools_called": [
+        "list_orders",
+        "list_orders",
+        "list_orders"
+      ],
+      "facts_found": 37,
+      "facts_total": 37,
+      "missing": [],
+      "db_problems": [],
+      "seconds": 104.2,
+      "model": "openai/gpt-oss-120b",
+      "model_calls": 4,
+      "tokens": 16284,
+      "answer": "**Orders that were shipped later than their required date**\n\n| Order ID | Order Date | Required Date | Shipped Date | Customer | Revenue |\n|---------|------------|---------------|--------------|----------|---------|\n| 10970 | 2018‑03‑24 | 2018‑04‑07 | 2018‑04‑24 | Bólido Comidas preparadas | 224.00 |\n| 10960 | 2018‑03‑19 | 2018‑04‑02 | 2018‑04‑08 | HILARION‑Abastos | 265.35 |\n| 10927 | 2018‑03‑05 | 2018‑04‑02 | 2018‑04‑08 | La corne d'abondance | 800.00 |\n| 10924 | 2018‑03‑04 | 2018‑04‑01 | 2018‑04‑08 | Berglunds snabbköp | 1 835.70 |\n| 10847 | 2018‑01‑22 | 2018‑02‑05 | 2018‑02‑10 | Save‑a‑lot Markets | 4 931.92 |\n| 10828 | 2018‑01‑13 | 2018‑01‑27 | 2018‑02‑04 | Rancho grande | 932.00 |\n| 10827 | 2018‑01‑12 | 2018‑01‑26 | 2018‑02‑06 | Bon app' | 843.00 |\n| 10816 | 2018‑01‑06 | 2018‑02‑03 | 2018‑02‑04 | Great Lakes Food Market | 8 446.45 |\n| 10807 | 2017‑12‑31 | 2018‑01‑28 | 2018‑01‑30 | Franchi S.p.A. | 18.40 |\n| 10779 | 2017‑12‑16 | 2018‑01‑13 | 2018‑01‑14 | Morgenstern Gesundkost | 1 335.00 |\n| 10777 | 2017‑12‑15 | 2017‑12‑29 | 2018‑01‑21 | Gourmet Lanchonetes | 224.00 |\n| 10749 | 2017‑11‑20 | 2017‑12‑18 | 2017‑12‑19 | Island Trading | 1 080.00 |\n| 10727 | 2017‑11‑03 | 2017‑12‑01 | 2017‑12‑05 | Reggiani Caseifici | 1 624.50 |\n| 10726 | 2017‑11‑03 | 2017‑11‑17 | 2017‑12‑05 | Eastern Connection | 655.00 |\n| 10709 | 2017‑10‑17 | 2017‑11‑14 | 2017‑11‑20 | Gourmet Lanchonetes | 3 424.00 |\n| 10705 | 2017‑10‑15 | 2017‑11‑12 | 2017‑11‑18 | HILARION‑Abastos | 378.00 |\n| 10687 | 2017‑09‑30 | 2017‑10‑28 | 2017‑10‑30 | Hungry Owl All‑Night Grocers | 4 960.90 |\n| 10663 | 2017‑09‑10 | 2017‑09‑24 | 2017‑10‑03 | Bon app' | 1 930.40 |\n| 10660 | 2017‑09‑08 | 2017‑10‑06 | 2017‑10‑15 | Hungry Coyote Import Store | 1 701.00 |\n| 10596 | 2017‑07‑11 | 2017‑08‑08 | 2017‑08‑12 | White Clover Markets | 1 180.88 |\n| 10593 | 2017‑07‑09 | 2017‑08‑06 | 2017‑08‑13 | Lehmanns Marktstand | 1 994.40 |\n| 10578 | 2017‑06‑24 | 2017‑07‑22 | 2017‑07‑25 | B's Beverages | 477.00 |\n| 10545 | 2017‑05‑22 | 2017‑06‑19 | 2017‑06‑26 | Lazy K Kountry Store | 210.00 |\n| 10523 | 2017‑05‑01 | 2017‑05‑29 | 2017‑05‑30 | Seven Seas Imports | 2 444.31 |\n| 10515 | 2017‑04‑23 | 2017‑05‑07 | 2017‑05‑23 | QUICK‑Stop | 9 921.30 |\n| 10483 | 2017‑03‑24 | 2017‑04‑21 | 2017‑04‑25 | White Clover Markets | 668.80 |\n| 10451 | 2017‑02‑19 | 2017‑03‑05 | 2017‑03‑12 | QUICK‑Stop | 3 849.66 |\n| 10433 | 2017‑02‑03 | 2017‑03‑03 | 2017‑03‑04 | Princesa Isabel Vinhos | 851.20 |\n| 10427 | 2017‑01‑27 | 2017‑02‑24 | 2017‑03‑03 | Piccolo und mehr | 651.00 |\n| 10423 | 2017‑01‑23 | 2017‑02‑06 | 2017‑02‑24 | Gourmet Lanchonetes | 1 020.00 |\n| 10380 | 2016‑12‑12 | 2017‑01‑09 | 2017‑01‑16 | Hungry Owl All‑Night Grocers | 1 313.82 |\n| 10320 | 2016‑10‑03 | 2016‑10‑17 | 2016‑10‑18 | Wartian Herkku | 516.00 |\n| 10309 | 2016‑09‑19 | 2016‑10‑17 | 2016‑10‑23 | Hungry Owl All‑Night Grocers | 1 762.00 |\n| 10302 | 2016‑09‑10 | 2016‑10‑08 | 2016‑10‑09 | Suprêmes délices | 2 708.80 |\n| 10280 | 2016‑08‑14 | 2016‑09‑11 | 2016‑09‑12 | Berglunds snabbköp | 613.20 |\n| 10271 | 2016‑08‑01 | 2016‑08‑29 | 2016‑08‑30 | Split Rail Beer & Ale | 48.00 |\n| 10264 | 2016‑07‑24 | 2016‑08‑21 | 2016‑08‑23 | Folk och fä HB | 695.62 |\n\n*All 37 orders in the database (July 2016 – May 2018) that were shipped after their required delivery date.*"
+    }
+  ]
+}

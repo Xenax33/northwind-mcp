@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -25,6 +26,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+import openai
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
@@ -36,6 +38,7 @@ from northwind_host.events import EventBus
 from northwind_host.mcp_link import Approvals, ApprovalPolicy, connect
 
 STATIC = Path(__file__).parent / "static"
+logger = logging.getLogger("northwind_host")
 load_dotenv()
 
 
@@ -52,6 +55,25 @@ class ApprovalAnswer(BaseModel):
 
 def auto_approval_allowed() -> bool:
     return os.environ.get("NORTHWIND_ALLOW_AUTO_APPROVAL") == "1"
+
+
+def describe_failure(exc: Exception) -> str:
+    """A safe message for the page. The provider's raw error text can include account identifiers,
+    so it is logged on the server only."""
+    if isinstance(exc, openai.APIStatusError):
+        if exc.status_code == 413:
+            return (
+                "The question failed: the conversation grew larger than the model provider accepts in one "
+                "request on this plan (8,000 tokens per minute on Groq's free tier). Try a narrower question."
+            )
+        if exc.status_code == 429:
+            return "The question failed: the model provider's rate limit was reached. Wait a minute and try again."
+        if exc.status_code in (401, 403):
+            return "The question failed: the model provider rejected the API key. Check GROQ_API_KEY in .env."
+        return f"The question failed: the model provider returned HTTP {exc.status_code}."
+    if isinstance(exc, openai.APIConnectionError):
+        return "The question failed: the model provider could not be reached."
+    return f"The question failed unexpectedly ({type(exc).__name__}). See the server log."
 
 
 @asynccontextmanager
@@ -127,8 +149,10 @@ async def ask(body: AskRequest, request: Request) -> dict[str, Any]:
         try:
             result = await state.agent.answer(body.question)
         except Exception as exc:  # e.g. the model API is down: report it, keep the host running
-            state.bus.emit("status", text=f"The question failed: {type(exc).__name__}: {exc}")
-            raise HTTPException(502, f"The question failed: {type(exc).__name__}: {exc}") from exc
+            message = describe_failure(exc)
+            logger.exception("Question failed")  # full details stay in the server log
+            state.bus.emit("status", text=message)
+            raise HTTPException(502, message) from exc
         finally:
             state.approvals.policy = "ask"
         state.bus.emit("answer", text=result.answer)
