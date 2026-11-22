@@ -11,6 +11,8 @@ orders safely. Around it:
 
 Built for the Devsinc take-home assessment. The reasons behind each choice are in
 [DECISIONS.md](DECISIONS.md), and how AI was used is in [AI_USAGE.md](AI_USAGE.md).
+**Diagrams of every flow** (the architecture, a question, placing an order, paging, the data build, the
+evaluation and the data model) are in [docs/how-it-works.md](docs/how-it-works.md).
 
 ## At a glance
 
