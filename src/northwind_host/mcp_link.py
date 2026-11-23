@@ -80,6 +80,9 @@ class Approvals:
         self._bus = bus
         self._pending: dict[str, asyncio.Future[bool]] = {}
         self.policy: ApprovalPolicy = "ask"
+        # The browser that asked the current question. Only it may answer the approval, so on a
+        # shared demo one visitor can't approve another visitor's order.
+        self.owner: str | None = None
 
     async def ask(self, message: str) -> bool:
         if self.policy != "ask":
@@ -89,7 +92,7 @@ class Approvals:
         approval_id = uuid.uuid4().hex
         future: asyncio.Future[bool] = asyncio.get_running_loop().create_future()
         self._pending[approval_id] = future
-        self._bus.emit("approval", status="requested", approval_id=approval_id, text=message)
+        self._bus.emit("approval", status="requested", approval_id=approval_id, text=message, owner=self.owner)
         try:
             approved = await asyncio.wait_for(future, APPROVAL_TIMEOUT_SECONDS)
         except TimeoutError:
@@ -99,9 +102,11 @@ class Approvals:
         self._bus.emit("approval", status="answered", approval_id=approval_id, approved=approved)
         return approved
 
-    def answer(self, approval_id: str, approved: bool) -> bool:
+    def answer(self, approval_id: str, approved: bool, client_id: str | None = None) -> bool:
         future = self._pending.get(approval_id)
         if future is None or future.done():
+            return False
+        if self.owner is not None and client_id != self.owner:
             return False
         future.set_result(approved)
         return True

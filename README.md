@@ -23,7 +23,7 @@ evaluation and the data model) are in [docs/how-it-works.md](docs/how-it-works.m
 | **Data** | The real 830-order Northwind dataset in SQLite, cleaned and verified by a reproducible build |
 | **Safety** | The write needs a human's approval through MCP elicitation, is checked first, and is all-or-nothing and audited. Reads use a read-only connection |
 | **Host** | FastAPI + plain HTML/JS. Groq `openai/gpt-oss-120b` picks the tools; the live log shows the MCP and AI traffic in two lanes |
-| **Tests** | 108 tests: the views, every tool, paging, errors, the write, the real protocol, the host end to end, and the eval's checker |
+| **Tests** | 112 tests: the views, every tool, paging, errors, the write, the real protocol, the host end to end, and the eval's checker |
 | **Eval** | See [eval/results/latest.md](eval/results/latest.md) |
 
 ## Quick start
@@ -38,7 +38,7 @@ git clone https://github.com/Xenax33/northwind-mcp.git
 cd northwind-mcp
 uv sync                                   # install exact locked versions
 uv run python scripts/build_db.py         # download, clean and verify the database
-uv run pytest                             # 108 tests, about 15 seconds, no API key needed
+uv run pytest                             # 112 tests, about 15 seconds, no API key needed
 ```
 
 ### Use the MCP server from any MCP client
@@ -97,6 +97,28 @@ Earlier runs are kept in `eval/results/runs/`.
 `scripts/build_db.py` writes two files: `data/northwind-clean.db` (pristine, used by tests and the eval)
 and `data/northwind.db` (the working copy the server writes orders to). Running the script again resets both.
 
+## Deploy on Render (free)
+
+The repo includes a [Render Blueprint](render.yaml) that deploys the web host, which starts the MCP server
+inside the same service, on Render's free plan.
+
+1. Sign in at [render.com](https://render.com) with your GitHub account.
+2. Click **New → Blueprint**, pick this repository, and click **Connect**.
+3. When it asks for `GROQ_API_KEY`, paste your key. It's stored by Render and never committed.
+4. Click **Apply**. The first build installs everything, builds the database (about 2–4 minutes), and
+   gives you a URL like `https://northwind-mcp.onrender.com`.
+
+What to expect on the free plan:
+
+- It **sleeps after 15 minutes without visitors**, and the next visit wakes it in about a minute.
+- The disk is **reset on every restart**, so orders placed by visitors disappear and the demo returns to
+  the clean data on its own.
+- To protect the free Groq quota, the demo accepts **20 questions per hour** across all visitors
+  (`NORTHWIND_MAX_QUESTIONS_PER_HOUR`). Change it in Render's Environment tab.
+- Every push to `main` redeploys automatically.
+- Everyone sees the same live log, but an order's approval dialog appears only in the browser that asked,
+  and the host accepts the answer only from that browser.
+
 ## Setting up on a new machine
 
 Step by step, from a machine with nothing installed. The commands are for **Windows** (Command Prompt or
@@ -124,7 +146,7 @@ uv run pytest
 ```
 
 `build_db.py` downloads about 25 MB the first time (cached in `data/raw/`), so it needs internet access.
-`pytest` should end with `108 passed`.
+`pytest` should end with `112 passed`.
 
 **3. Add your Groq key** (for the web host and the evaluation only).
 
@@ -231,6 +253,7 @@ The questions this data should answer, and why it fits the brief, are in
 | `NORTHWIND_MODEL` | host | `openai/gpt-oss-120b` |
 | `NORTHWIND_DB` | server | `data/northwind.db` |
 | `HOST`, `PORT` | host | `127.0.0.1`, `8000` |
+| `NORTHWIND_MAX_QUESTIONS_PER_HOUR` | host | `0` = no limit (the Render demo uses 20) |
 | `NORTHWIND_ALLOW_AUTO_APPROVAL` | host | off. Set only by the evaluation's own host |
 
 ## Project layout
@@ -257,6 +280,6 @@ docs/                   the question list and the real-client proof
 - **Groq's free tier allows 8,000 tokens per minute**, so multi-step questions wait between model calls
   (an order takes about a minute). The client retries automatically.
 - **One question at a time.** The host serves one run at a time, so the log and the approval dialog
-  belong to that run.
+  belong to that run. On a shared deployment, visitors see each other's questions in the live log.
 - **One question, one answer.** There's no follow-up chat, so an order question should name the
   salesperson and shipper. Without them, the model asks for them instead of guessing.

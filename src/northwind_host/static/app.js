@@ -3,6 +3,8 @@
 "use strict";
 
 const $ = (id) => document.getElementById(id);
+// A random ID for this page. The host only accepts the approval from the page that asked.
+const clientId = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)).slice(0, 64);
 const escapeHtml = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const time = (ts) => new Date(ts * 1000).toLocaleTimeString([], { hour12: false });
@@ -77,7 +79,7 @@ async function ask(question) {
     const response = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question, client_id: clientId }),
     });
     const body = await response.json();
     if (!response.ok) throw new Error(body.detail || `Request failed (${response.status})`);
@@ -177,7 +179,7 @@ function addLogEntry(e) {
     cls = "approval";
     label = "approval";
     summary =
-      e.status === "requested" ? "server asks the user to approve" :
+      e.status === "requested" ? (e.owner && e.owner !== clientId ? "server asks another visitor to approve" : "server asks the user to approve") :
       e.status === "auto" ? `answered automatically (eval): ${e.approved ? "approved" : "declined"}` :
       `user ${e.approved ? "approved" : "declined"}`;
     body = e;
@@ -219,7 +221,7 @@ async function answerApproval(approve) {
     await fetch(`/api/approvals/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ approve }),
+      body: JSON.stringify({ approve, client_id: clientId }),
     });
   }
 }
@@ -247,7 +249,7 @@ function connectEvents() {
     if (e.id <= lastEventId) return;
     lastEventId = e.id;
     addLogEntry(e);
-    if (e.kind === "approval" && e.status === "requested") showApproval(e);
+    if (e.kind === "approval" && e.status === "requested" && (!e.owner || e.owner === clientId)) showApproval(e);
     if (e.kind === "approval" && e.status === "answered" && e.approval_id === pendingApproval) {
       pendingApproval = null;
       $("approval").close();

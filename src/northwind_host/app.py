@@ -20,6 +20,8 @@ import asyncio
 import json
 import logging
 import os
+import time
+from collections import deque
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
@@ -47,14 +49,43 @@ class AskRequest(BaseModel):
     # Only "ask" (a human clicks) is allowed unless the host was started for the evaluation,
     # so nobody can skip the human approval through the public API.
     approval_policy: ApprovalPolicy = "ask"
+    # A random ID the page makes when it loads. Only this page may answer the approval dialog.
+    client_id: str | None = Field(default=None, max_length=64)
 
 
 class ApprovalAnswer(BaseModel):
     approve: bool
+    client_id: str | None = Field(default=None, max_length=64)
 
 
 def auto_approval_allowed() -> bool:
     return os.environ.get("NORTHWIND_ALLOW_AUTO_APPROVAL") == "1"
+
+
+class QuestionLimit:
+    """At most N questions per rolling hour, across all visitors (NORTHWIND_MAX_QUESTIONS_PER_HOUR).
+
+    Protects the model provider's free quota on a public demo. Unset or 0 means no limit.
+    """
+
+    def __init__(self, per_hour: int) -> None:
+        self.per_hour = per_hour
+        self._times: deque[float] = deque()
+
+    @classmethod
+    def from_env(cls) -> QuestionLimit:
+        return cls(int(os.environ.get("NORTHWIND_MAX_QUESTIONS_PER_HOUR") or 0))
+
+    def try_take(self, now: float) -> float | None:
+        """Take one slot. Returns None if allowed, else the seconds until a slot frees up."""
+        if self.per_hour <= 0:
+            return None
+        while self._times and now - self._times[0] >= 3600:
+            self._times.popleft()
+        if len(self._times) >= self.per_hour:
+            return 3600 - (now - self._times[0])
+        self._times.append(now)
+        return None
 
 
 def describe_failure(exc: Exception) -> str:
@@ -88,6 +119,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.tools = tools
         app.state.agent = Agent(client, tools, bus)
         app.state.run_lock = asyncio.Lock()
+        app.state.question_limit = QuestionLimit.from_env()
         yield
 
 
@@ -131,7 +163,14 @@ async def events(request: Request) -> StreamingResponse:
         finally:
             bus.unsubscribe(queue)
 
-    return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
+    # X-Accel-Buffering: tells reverse proxies (as on hosting platforms) not to hold the stream back.
+    headers = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    return StreamingResponse(stream(), media_type="text/event-stream", headers=headers)
+
+
+@app.get("/api/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
 
 
 @app.post("/api/ask")
@@ -143,8 +182,15 @@ async def ask(body: AskRequest, request: Request) -> dict[str, Any]:
         raise HTTPException(503, "GROQ_API_KEY is not set. Add it to the .env file and restart the host.")
     if state.run_lock.locked():
         raise HTTPException(409, "Another question is still running. Try again when it has finished.")
+    if (wait := state.question_limit.try_take(time.monotonic())) is not None:
+        raise HTTPException(
+            429,
+            f"This demo allows {state.question_limit.per_hour} questions per hour to protect its free "
+            f"model quota. Try again in about {max(1, round(wait / 60))} minute(s).",
+        )
     async with state.run_lock:
         state.approvals.policy = body.approval_policy
+        state.approvals.owner = body.client_id
         state.bus.emit("question", text=body.question)
         try:
             result = await state.agent.answer(body.question)
@@ -155,14 +201,15 @@ async def ask(body: AskRequest, request: Request) -> dict[str, Any]:
             raise HTTPException(502, message) from exc
         finally:
             state.approvals.policy = "ask"
+            state.approvals.owner = None
         state.bus.emit("answer", text=result.answer)
         return asdict(result)
 
 
 @app.post("/api/approvals/{approval_id}")
 async def answer_approval(approval_id: str, body: ApprovalAnswer, request: Request) -> dict[str, bool]:
-    if not request.app.state.approvals.answer(approval_id, body.approve):
-        raise HTTPException(404, "No pending approval with that ID (it may have timed out).")
+    if not request.app.state.approvals.answer(approval_id, body.approve, body.client_id):
+        raise HTTPException(404, "No pending approval with that ID for this page (it may have timed out).")
     return {"ok": True}
 
 

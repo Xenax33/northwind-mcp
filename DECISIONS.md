@@ -42,7 +42,7 @@ I also ran the server in two real clients, Claude Code and MCP Inspector (`docs/
 |---|---|---|---|---|
 | 1 | 14 | 12 | 41 | 126,494 |
 | 3 | 14 | 13 (Q8: 413) | 36 | 104,920 |
-| Final | 14 | _to fill_ | _to fill_ | _to fill_ |
+| **Final (2026-11-23)** | 14 | **14** | 38 | 106,319 |
 
 ## 6. What I would do with one more week
 

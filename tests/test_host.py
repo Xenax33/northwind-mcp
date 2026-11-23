@@ -146,3 +146,51 @@ def test_model_api_errors_are_reported_without_provider_details(host):
     assert response.status_code == 502
     assert "8,000 tokens per minute" in response.json()["detail"]
     assert "org_secret123" not in response.text
+
+
+def test_only_the_asking_page_can_answer_its_approval(db_path):
+    import asyncio
+
+    from northwind_host.events import EventBus
+    from northwind_host.mcp_link import Approvals
+
+    async def scenario():
+        bus = EventBus()
+        approvals = Approvals(bus)
+        approvals.owner = "page-A"
+        waiting = asyncio.create_task(approvals.ask("Place this order?"))
+        await asyncio.sleep(0)
+        request = next(e for e in bus.history() if e.get("status") == "requested")
+        assert request["owner"] == "page-A"
+        assert approvals.answer(request["approval_id"], True, client_id="page-B") is False  # another visitor
+        assert approvals.answer(request["approval_id"], True, client_id=None) is False
+        assert approvals.answer(request["approval_id"], False, client_id="page-A") is True
+        return await waiting
+
+    assert asyncio.run(scenario()) is False
+
+
+def test_question_limit_per_hour():
+    from northwind_host.app import QuestionLimit
+
+    limit = QuestionLimit(per_hour=2)
+    assert limit.try_take(0) is None
+    assert limit.try_take(10) is None
+    assert limit.try_take(20) == pytest.approx(3580)  # full: wait until the first one is an hour old
+    assert limit.try_take(3600) is None  # the first slot has expired
+    assert QuestionLimit(per_hour=0).try_take(0) is None  # 0 = no limit
+
+
+def test_ask_is_refused_when_the_hourly_limit_is_reached(host):
+    from northwind_host.app import QuestionLimit
+
+    host.app.state.question_limit = QuestionLimit(per_hour=1)
+    host.app.state.agent.llm = ScriptedModel(reply("first"))
+    assert host.post("/api/ask", json={"question": "one"}).status_code == 200
+    second = host.post("/api/ask", json={"question": "two"})
+    assert second.status_code == 429
+    assert "questions per hour" in second.json()["detail"]
+
+
+def test_health(host):
+    assert host.get("/api/health").json() == {"status": "ok"}

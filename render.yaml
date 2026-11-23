@@ -1,0 +1,24 @@
+# Render Blueprint: deploys the web host (which starts the MCP server) on Render's free plan.
+# In Render: New > Blueprint > pick this repository > enter GROQ_API_KEY > Apply.
+# Free web services sleep after 15 minutes without visitors and take about a minute to wake.
+# The disk is reset on every restart, so the demo always comes back to the clean data.
+services:
+  - type: web
+    name: northwind-mcp
+    runtime: python
+    plan: free
+    buildCommand: pip install uv && uv sync --frozen --no-dev && .venv/bin/python scripts/build_db.py
+    startCommand: .venv/bin/northwind-host
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION          # Render installs this Python; uv must use it (see below)
+        value: 3.12.10
+      - key: UV_PYTHON_DOWNLOADS     # don't download a Python that wouldn't survive into runtime
+        value: never
+      - key: HOST                    # listen on all interfaces; Render sets PORT itself
+        value: 0.0.0.0
+      - key: NORTHWIND_MAX_QUESTIONS_PER_HOUR   # protect the free Groq quota on a public demo
+        value: "20"
+      - key: GROQ_API_KEY            # secret: you type it in Render's dashboard, never in the repo
+        sync: false
