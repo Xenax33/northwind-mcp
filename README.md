@@ -9,6 +9,9 @@ orders safely. Around it:
 - an **evaluation** of 14 real questions with independently computed answers;
 - **proof** in two real clients, Claude Code and MCP Inspector ([docs/proof](docs/proof/README.md)).
 
+**Live demo: https://northwind-mcp.onrender.com** (free plan: the first visit after 15 idle minutes
+takes about a minute to wake up; 20 questions per hour).
+
 Built for the Devsinc take-home assessment. The reasons behind each choice are in
 [DECISIONS.md](DECISIONS.md), and how AI was used is in [AI_USAGE.md](AI_USAGE.md).
 **Diagrams of every flow** (the architecture, a question, placing an order, paging, the data build, the
@@ -24,7 +27,8 @@ evaluation and the data model) are in [docs/how-it-works.md](docs/how-it-works.m
 | **Safety** | The write needs a human's approval through MCP elicitation, is checked first, and is all-or-nothing and audited. Reads use a read-only connection |
 | **Host** | FastAPI + plain HTML/JS. Groq `openai/gpt-oss-120b` picks the tools; the live log shows the MCP and AI traffic in two lanes |
 | **Tests** | 112 tests: the views, every tool, paging, errors, the write, the real protocol, the host end to end, and the eval's checker |
-| **Eval** | See [eval/results/latest.md](eval/results/latest.md) |
+| **Eval** | **14/14** on the final run, 38 model calls ([eval/results/latest.md](eval/results/latest.md)) |
+| **Live** | https://northwind-mcp.onrender.com (Render, free plan) |
 
 ## Quick start
 
@@ -107,6 +111,9 @@ inside the same service, on Render's free plan.
 3. When it asks for `GROQ_API_KEY`, paste your key. It's stored by Render and never committed.
 4. Click **Apply**. The first build installs everything, builds the database (about 2–4 minutes), and
    gives you a URL like `https://northwind-mcp.onrender.com`.
+
+Render asks for a card to verify your identity, even for the free plan (a temporary $1 authorisation that
+isn't charged).
 
 What to expect on the free plan:
 
